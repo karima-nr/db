@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+const API_URL = import.meta.env.VITE_API_URL;
 import { Camera, Upload, X, ArrowLeft, Send } from 'lucide-react';
 import { Complaint } from '../App'; // Asumsikan interface Complaint dari App.tsx
 
@@ -11,9 +12,9 @@ export function ComplaintForm({ onSubmit, onCancel }: ComplaintFormProps) {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    address: '', // Match interface Complaint
-    idNumber: '', // Match interface Complaint
-    description: '', // Match interface Complaint
+    address: '', // Match interface Complaint (address, bukan lokasi)
+    idNumber: '', // Match interface Complaint (idNumber)
+    description: '', // Match interface Complaint (description, bukan deskripsi)
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -45,7 +46,7 @@ export function ComplaintForm({ onSubmit, onCancel }: ComplaintFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Match server: name, deskripsi, idNumber, lokasi wajib; phone opsional
+    // Validasi wajib: name, address, idNumber, description (match server: name, lokasi, idNumber, deskripsi)
     if (!formData.name || !formData.address || !formData.idNumber || !formData.description) {
       alert('Mohon lengkapi semua data yang diperlukan (Nama, Lokasi, NIK, Deskripsi)');
       return;
@@ -70,14 +71,14 @@ export function ComplaintForm({ onSubmit, onCancel }: ComplaintFormProps) {
       if (formData.phone) { // Hanya append jika ada phone, agar server set null jika kosong
         formDataToSend.append('phone', formData.phone.replace(/[\s\-]/g, ''));
       }
-      formDataToSend.append('lokasi', formData.address); // Match server (lokasi dari address)
-      formDataToSend.append('idNumber', formData.idNumber);
-      formDataToSend.append('deskripsi', formData.description); // Match server (deskripsi dari description)
+      formDataToSend.append('lokasi', formData.address); // Map address ke lokasi (server)
+      formDataToSend.append('idNumber', String(formData.idNumber)); // Pastikan string (meskipun sudah, untuk aman)
+      formDataToSend.append('deskripsi', formData.description); // Map description ke deskripsi (server)
       if (imageFile) {
         formDataToSend.append('image', imageFile);
       }
 
-      const response = await fetch('http://localhost:5000/api/pengaduan', {
+      const response = await fetch(`${API_URL}/api/pengaduan`, {
         method: 'POST',
         body: formDataToSend,
       });
@@ -87,14 +88,15 @@ export function ComplaintForm({ onSubmit, onCancel }: ComplaintFormProps) {
         alert('Laporan berhasil dikirim!');
         
         // Match interface Complaint: { name, phone, address, idNumber, description, imageUrl? }
+        // Perbaiki syntax error: hapus koma, tambah undefined
         onSubmit({
-  name: formData.name,
-  phone: formData.phone, // String kosong jika tidak ada
-  address: formData.address,
-  idNumber: formData.idNumber,
-  description: formData.description,
-  imageUrl: result.fotoUrl || undefined,  // Perbaiki: hapus koma, tambah undefined
-});
+          name: formData.name,
+          phone: formData.phone, // String kosong jika tidak ada
+          address: formData.address,
+          idNumber: formData.idNumber,
+          description: formData.description,
+          imageUrl: result.fotoUrl || undefined, // Perbaiki: undefined jika tidak ada
+        });
       } else {
         const errorData = await response.json();
         console.error('Server error:', errorData);
@@ -102,7 +104,7 @@ export function ComplaintForm({ onSubmit, onCancel }: ComplaintFormProps) {
       }
     } catch (error) {
       console.error('Error saat kirim data:', error);
-      alert('Koneksi ke server gagal. Pastikan server.js sudah jalan di port 5000');
+      alert('Koneksi ke server gagal. Pastikan server.js sudah jalan di port 5000 dan API_URL benar');
     } finally {
       setIsSubmitting(false);
     }

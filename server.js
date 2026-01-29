@@ -90,8 +90,8 @@ app.post('/api/masyarakat', async (req, res) => {
     const masyarakat = await prisma.masyarakat.create({
       data: {
         nama,
-        nik: Number(nik),
-        no_hp: no_hp ? parseInt(no_hp) : null,
+        nik: nik,
+        no_hp: no_hp ? String(no_hp) : null,
         alamat
       }
     });
@@ -132,10 +132,15 @@ app.get('/api/masyarakat/:id', async (req, res) => {
 // 2. Pengaduan
 app.post('/api/pengaduan', upload.single('image'), async (req, res) => {
   const { name, phone, lokasi, idNumber, deskripsi } = req.body;
-  if (!name || !deskripsi || !idNumber || !lokasi) {
+  console.log('Data pengaduan masuk:', { name, idNumber, phone, lokasi, deskripsi });
+
+  // Konversi idNumber ke string untuk menghindari error Prisma (karena nik di database adalah String)
+  const idNumberStr = String(idNumber);
+
+  if (!name || !deskripsi || !idNumberStr || !lokasi) {
     return res.status(400).json({ error: 'Nama, deskripsi, NIK, dan lokasi diperlukan' });
   }
-  if (!/^\d{16}$/.test(idNumber)) {
+  if (!/^\d{16}$/.test(idNumberStr)) {
     return res.status(400).json({ error: 'NIK harus berupa 16 digit angka' });
   }
   if (phone && !/^\d+$/.test(phone)) {
@@ -143,13 +148,13 @@ app.post('/api/pengaduan', upload.single('image'), async (req, res) => {
   }
   try {
     let masyarakat = await prisma.masyarakat.findFirst({
-      where: { nik: Number(idNumber) }
+      where: { nik: idNumberStr }  // Gunakan idNumberStr (string)
     });
     if (!masyarakat) {
       masyarakat = await prisma.masyarakat.create({
         data: {
           nama: name,
-          nik: Number(idNumber),
+          nik: idNumberStr,  // Gunakan idNumberStr (string)
           no_hp: phone ? String(phone) : null,
           alamat: lokasi
         }

@@ -20,7 +20,7 @@ model Admin {
 model Masyarakat {
   id_masyarakat Int        @id @default(autoincrement())
   nama          String     @db.Text
-  nik           Int
+  nik           String      @unique
   no_hp         String     @db.VarChar(15)
   alamat        String     @db.VarChar(500)
   pengaduan     Pengaduan?

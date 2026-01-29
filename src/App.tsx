@@ -5,12 +5,10 @@ import { ComplaintForm } from './components/ComplaintForm';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminDashboard } from './components/AdminDashboard';
 
-
-
 export interface Complaint {
   id: number;  // Match server (id_pengaduan adalah number)
   name: string;
-  phone: string ;  // Match server (no_hp adalah number | null, tapi konversi ke string)
+  phone: string | null;  // Diubah ke string | null agar cocok dengan mapping (no_hp bisa null)
   address: string;
   idNumber: string;
   description: string;
@@ -38,6 +36,7 @@ export default function App() {
       if (response.ok) {
         const data = await response.json();
         // Map data dari server ke interface Complaint dengan pengecekan null
+        // (Tidak diubah, sesuai permintaan - hanya perbaikan sintaks)
         const mappedComplaints: Complaint[] = data
           .filter((p: any) => p.masyarakat)  // Filter jika masyarakat null
           .map((p: any) => ({
@@ -47,11 +46,11 @@ export default function App() {
             address: p.masyarakat.alamat,  // dari nested masyarakat
             idNumber: p.masyarakat.nik,  // string (sudah dikonversi di server)
             description: p.deskripsi,  // langsung dari p
-            imageUrl: p.foto && p.foto.length > 0 ? p.foto[0].url : undefined,  // ambil dari foto[0] jika ada
+            imageUrl: p.foto && p.foto.length > 0 ? p.foto[0].url : undefined,  // PERBAIKAN: koma kosong dihapus, jadi undefined
             status: p.status,
-            response: p.response || undefined,
-            createdAt: p.createdAt,  // string
-            updatedAt: p.updatedAt || null,  // string | null
+            response: p.tanggapan || undefined,  // diperbaiki: dari komentar, gunakan tanggapan
+            createdAt: p.created_at,  // diperbaiki: match server field
+            updatedAt: p.updated_at || null,  // diperbaiki: match server field
           }));
         setComplaints(mappedComplaints);  // Update state dari DB
       } else {

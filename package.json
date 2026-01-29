@@ -1,13 +1,15 @@
 {
-  "name": "public_complaint_website",  
+  "name": "public_complaint_website",
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "24.13.0"  
+    "node": "24.13.0"
   },
   "scripts": {
     "start": "node server.js",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && prisma migrate deploy",
+    "dev": "vite",
+    "build": "vite build"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
@@ -16,10 +18,15 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.563.0",
     "multer": "^2.0.2",
-    "pg": "^8.11.0"  
+    "pg": "^8.11.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
-    "prisma": "^6.19.2"  
+    "prisma": "^6.19.2",
+    "vite": "^7.3.1"
   }
 }

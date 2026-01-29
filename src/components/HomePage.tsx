@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect } from "react"; // Pastikan import useEffect benar
 import {
   Camera,
   MessageSquareWarning,
@@ -62,14 +62,23 @@ export function HomePage({
     }
   };
 
-  // Fungsi untuk handle error gambar (fallback ke placeholder)
+  // Fungsi untuk handle error gambar (fallback ke placeholder inline)
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = "/placeholder-image.png"; // Ganti dengan path gambar placeholder yang kamu punya, atau gunakan data URL inline
+    // Placeholder inline (data URL) untuk gambar yang gagal load
+    e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxMk0xMiAxMnoiIHN0cm9rZT0iIzk5QTBBRSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTEyIDEyTDEyIDEyIiBzdHJva2U9IiM5OUEwQUUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo="; // SVG placeholder sederhana
   };
 
-  // useeffect
+  // useEffect (perbaiki kapitalisasi)
   useEffect(() => {
-    console.log("FIRST COMPLAINT:", complaints[0]);
+    try {
+      if (complaints.length > 0) {
+        console.log("FIRST COMPLAINT:", complaints[0]);
+      } else {
+        console.log("Belum ada pengaduan tersedia");
+      }
+    } catch (error) {
+      console.error("Error di useEffect HomePage:", error);
+    }
   }, [complaints]);
 
   return (
@@ -210,7 +219,6 @@ export function HomePage({
                         <span className="text-sm">{getStatusText(complaint.status)}</span>
                       </div>
                     </div>
-
 
                     {complaint.response && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
