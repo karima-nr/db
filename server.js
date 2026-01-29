@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// percobaan
+// Test koneksi database
 app.get("/test-db", async (req, res) => {
   try {
     const result = await prisma.admin.findMany();
@@ -24,10 +24,9 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
-
 // CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:4173', 'https://laporan-kappa.vercel.app'],  // Port Vite dan preview
+  origin: ['http://localhost:5173', 'http://localhost:4173', 'https://laporan-kappa.vercel.app'],
   credentials: true
 }));
 
@@ -39,18 +38,18 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, 'uploads', 'pengaduan');
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });  // Pastikan folder ada
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + '-' + file.originalname.replace(/\s+/g, '_');  // Ganti spasi dengan underscore
+    const uniqueName = Date.now() + '-' + file.originalname.replace(/\s+/g, '_');
     cb(null, uniqueName);
   }
 });
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },  // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -79,9 +78,8 @@ const hashPassword = async (password) => {
 };
 
 // API Endpoints
-
 app.get('/', (req, res) => {
-  res.send('Server is running on port 5000');
+  res.send('Server is running on port ' + (process.env.PORT || 5000));
 });
 
 // 1. Masyarakat
@@ -92,14 +90,14 @@ app.post('/api/masyarakat', async (req, res) => {
     const masyarakat = await prisma.masyarakat.create({
       data: {
         nama,
-        nik: Number(nik),  // Number untuk NIK 16 digit
-        no_hp: no_hp ? parseInt(no_hp) : null,  // Parse ke Int, atau null jika tidak ada
+        nik: Number(nik),
+        no_hp: no_hp ? parseInt(no_hp) : null,
         alamat
       }
     });
     res.json({
       message: 'Masyarakat added',
-      masyarakat: { ...masyarakat, nik: masyarakat.nik.toString() }  // Konversi Number ke string
+      masyarakat: { ...masyarakat, nik: masyarakat.nik.toString() }
     });
   } catch (error) {
     console.error('Error inserting masyarakat:', error);
@@ -107,7 +105,7 @@ app.post('/api/masyarakat', async (req, res) => {
   }
 });
 
-app.get('/api/masyarakat', async (req, res) => {  // Tambah endpoint get all masyarakat jika diperlukan
+app.get('/api/masyarakat', async (req, res) => {
   try {
     const masyarakat = await prisma.masyarakat.findMany();
     const serializedMasyarakat = masyarakat.map(m => ({ ...m, nik: m.nik.toString() }));
@@ -132,39 +130,31 @@ app.get('/api/masyarakat/:id', async (req, res) => {
 });
 
 // 2. Pengaduan
-
 app.post('/api/pengaduan', upload.single('image'), async (req, res) => {
   const { name, phone, lokasi, idNumber, deskripsi } = req.body;
-
   if (!name || !deskripsi || !idNumber || !lokasi) {
     return res.status(400).json({ error: 'Nama, deskripsi, NIK, dan lokasi diperlukan' });
   }
-
   if (!/^\d{16}$/.test(idNumber)) {
     return res.status(400).json({ error: 'NIK harus berupa 16 digit angka' });
   }
-
-  // Tambah validasi phone: hanya digit jika ada
   if (phone && !/^\d+$/.test(phone)) {
     return res.status(400).json({ error: 'Nomor HP harus berupa angka' });
   }
-
   try {
     let masyarakat = await prisma.masyarakat.findFirst({
       where: { nik: Number(idNumber) }
     });
-
     if (!masyarakat) {
       masyarakat = await prisma.masyarakat.create({
         data: {
           nama: name,
           nik: Number(idNumber),
-          no_hp: phone ? String(phone) : null,  // parseInt dengan base 10, aman jika sudah divalidasi
+          no_hp: phone ? String(phone) : null,
           alamat: lokasi
         }
       });
     }
-
     const pengaduan = await prisma.pengaduan.create({
       data: {
         deskripsi,
@@ -173,7 +163,6 @@ app.post('/api/pengaduan', upload.single('image'), async (req, res) => {
         id_masyarakat: masyarakat.id_masyarakat
       }
     });
-
     let fotoUrl = null;
     if (req.file) {
       const foto = await prisma.foto.create({
@@ -183,9 +172,9 @@ app.post('/api/pengaduan', upload.single('image'), async (req, res) => {
           id_pengirim: masyarakat.id_masyarakat
         }
       });
-      fotoUrl = `http://localhost:5000/uploads/pengaduan/${req.file.filename}`;
+      const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+      fotoUrl = `${baseUrl}/uploads/pengaduan/${req.file.filename}`;
     }
-
     res.status(201).json({
       message: 'Pengaduan berhasil dikirim',
       pengaduan,
@@ -198,18 +187,18 @@ app.post('/api/pengaduan', upload.single('image'), async (req, res) => {
   }
 });
 
-// Di app.get('/api/pengaduan', ...)
 app.get('/api/pengaduan', async (req, res) => {
   try {
     const pengaduan = await prisma.pengaduan.findMany({
       include: { foto: true, masyarakat: true }
     });
+    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
     const serializedPengaduan = pengaduan.map(p => ({
       ...p,
-      masyarakat: p.masyarakat ? { ...p.masyarakat, nik: p.masyarakat.nik.toString() } : null,  // Handle jika masyarakat null
-      foto: (p.foto || []).map(f => ({  // Handle jika p.foto null, set []
+      masyarakat: p.masyarakat ? { ...p.masyarakat, nik: p.masyarakat.nik.toString() } : null,
+      foto: (p.foto || []).map(f => ({
         ...f,
-        url: f.file.startsWith('data:') ? f.file : `http://localhost:5000/uploads/pengaduan/${f.file}`  // Handle base64 atau filename
+        url: f.file.startsWith('data:') ? f.file : `${baseUrl}/uploads/pengaduan/${f.file}`
       }))
     }));
     res.json(serializedPengaduan);
@@ -219,14 +208,13 @@ app.get('/api/pengaduan', async (req, res) => {
   }
 });
 
-// PUT untuk update status (hapus authenticateAdmin untuk sementara agar bisa update tanpa token)
-app.put('/api/pengaduan/:id', async (req, res) => {  // Diubah: Hapus authenticateAdmin
-  const { status, response } = req.body;  // Tambah response jika diperlukan
+app.put('/api/pengaduan/:id', async (req, res) => {
+  const { status, response } = req.body;
   if (!status) return res.status(400).json({ error: 'Status diperlukan' });
   try {
     const pengaduan = await prisma.pengaduan.update({
       where: { id_pengaduan: parseInt(req.params.id) },
-      data: { status, response, updatedAt: new Date() }  // Update response dan updated_at
+      data: { status, response, updatedAt: new Date() }
     });
     res.json({ message: 'Pengaduan updated', pengaduan });
   } catch (error) {
@@ -243,13 +231,14 @@ app.post('/api/foto', upload.single('file'), async (req, res) => {
     const foto = await prisma.foto.create({
       data: {
         id_pengaduan: parseInt(pengaduanId),
-        file: req.file.filename,  // Simpan filename
-        id_pengirim: 1  // Dummy; sesuaikan dengan auth jika perlu (misal dari masyarakat yang login)
+        file: req.file.filename,
+        id_pengirim: 1
       }
     });
+    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
     res.json({
       message: 'Foto added',
-      foto: { ...foto, url: `http://localhost:5000/uploads/pengaduan/${foto.file}` }
+      foto: { ...foto, url: `${baseUrl}/uploads/pengaduan/${foto.file}` }
     });
   } catch (error) {
     console.error('Error inserting foto:', error);
@@ -262,7 +251,8 @@ app.get('/api/foto/:pengaduanId', async (req, res) => {
     const foto = await prisma.foto.findMany({
       where: { id_pengaduan: parseInt(req.params.pengaduanId) }
     });
-    const serializedFoto = foto.map(f => ({ ...f, url: `http://localhost:5000/uploads/pengaduan/${f.file}` }));
+    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const serializedFoto = foto.map(f => ({ ...f, url: `${baseUrl}/uploads/pengaduan/${f.file}` }));
     res.json(serializedFoto);
   } catch (error) {
     console.error('Error fetching foto:', error);
@@ -321,9 +311,8 @@ app.post('/api/admin', async (req, res) => {
   const { nama, password, email } = req.body;
   if (!nama || !password || !email) return res.status(400).json({ error: 'Semua field diperlukan' });
   try {
-    const hashedPassword = await hashPassword(password);
     const admin = await prisma.admin.create({
-      data: { nama, password: hashedPassword, email }
+      data: { nama, password: await hashPassword(password), email }
     });
     res.json({ message: 'Admin added', admin });
   } catch (error) {
@@ -344,17 +333,3 @@ process.on('SIGINT', () => {
   prisma.$disconnect();
   process.exit(0);
 });
-
-import express from "express";
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.get("/", (req, res) => {
-  res.send("Backend Railway jalan ✅");
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
