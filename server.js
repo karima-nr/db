@@ -134,8 +134,11 @@ app.post('/api/pengaduan', upload.single('image'), async (req, res) => {
   const { name, phone, lokasi, idNumber, deskripsi } = req.body;
   console.log('Data pengaduan masuk:', { name, idNumber, phone, lokasi, deskripsi });
 
-  // Konversi idNumber ke string untuk menghindari error Prisma (karena nik di database adalah String)
-  const idNumberStr = String(idNumber);
+  // Konversi idNumber ke string dan strip prefix jika ada (dari workaround client)
+  let idNumberStr = String(idNumber).trim();  // Pastikan string dan trim spasi
+  if (idNumberStr.startsWith('str_')) {
+    idNumberStr = idNumberStr.replace('str_', '');  // Strip prefix
+  }
 
   if (!name || !deskripsi || !idNumberStr || !lokasi) {
     return res.status(400).json({ error: 'Nama, deskripsi, NIK, dan lokasi diperlukan' });
@@ -148,13 +151,13 @@ app.post('/api/pengaduan', upload.single('image'), async (req, res) => {
   }
   try {
     let masyarakat = await prisma.masyarakat.findFirst({
-      where: { nik: idNumberStr }  // Gunakan idNumberStr (string)
+      where: { nik: idNumberStr }  // Sekarang pasti string tanpa prefix
     });
     if (!masyarakat) {
       masyarakat = await prisma.masyarakat.create({
         data: {
           nama: name,
-          nik: idNumberStr,  // Gunakan idNumberStr (string)
+          nik: idNumberStr,  // String tanpa prefix
           no_hp: phone ? String(phone) : null,
           alamat: lokasi
         }
