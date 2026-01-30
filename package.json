@@ -3,13 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "24.13.0"
+    "node": "24"
   },
   "scripts": {
     "start": "node server.js",
     "postinstall": "prisma generate && prisma migrate deploy",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
